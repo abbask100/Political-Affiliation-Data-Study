@@ -1,0 +1,212 @@
+---
+title: "DATA ANALYSIS"
+output: word_document
+date: "2024-04-05"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Data importation
+
+```{r}
+data <- read.csv("C:/Users/Administrator/Desktop/GSS_22_1.txt")
+head(data)
+```
+
+## Selecting variables
+
+```{r}
+attach(data)
+df1<-data.frame(age, sex, income, rincome, degree, race, natcrime, natdrug, nateduc, natrace, marital, partyid )
+```
+
+# Data preparation 
+
+```{r}
+# List of codes to be removed
+remove_codes <- c('.d', '.i', '.j', '.m', '.n', '.p', '.q', '.r', '.s', '.u', '.x', '.y', '.z')
+
+# Using subset function
+df <- subset(df1, !apply(df1, 1, function(x) any(x %in% remove_codes)))
+
+# View the data
+head(df)
+```
+## Convert data type
+
+```{r}
+# Convert each column to numeric
+df[] <- lapply(df, as.numeric)
+```
+
+
+## Coding
+
+```{r}
+# Recode the race variable
+df$race <- recode(df$race,
+                  '1' = 'white',
+                  '2' = 'black',
+                  '3' = 'other'
+                  )
+# Recode the sex variable
+df <- df %>%
+  mutate(sex = recode(sex,
+                      '1' = 'male',
+                      '2' = 'female'
+                      ))
+# Recode the marital variable
+df <- df %>%
+  mutate(marital = recode(marital,
+                           '1' = 'married',
+                           '2' = 'widowed',
+                           '3' = 'divorced',
+                           '4' = 'separated',
+                           '5' = 'never married'
+                           ))
+# Recode the partyid variable
+df <- df %>%
+  mutate(partyid = recode(partyid,
+                           '0' = '7',
+                           '1' = '6',
+                           '2' = '5',
+                           '3' = '4',
+                           '4' = '3',
+                           '5' = '2',
+                           '6' = '1',
+                           '7' = '0'
+                           ))
+```
+
+
+# Univariate 
+
+## Participants by sex
+
+```{r}
+library(ggplot2)
+ggplot(df, aes(x = sex)) +
+geom_bar(fill = "cornflowerblue",
+color="black") +
+labs(x = "Sex",
+y = "Frequency",
+title = "Participants by sex")
+```
+## Participants by race
+
+```{r}
+ggplot(df, aes(x = race)) +
+geom_bar(fill = "cornflowerblue",
+color="black") +
+labs(x = "race",
+y = "Frequency",
+title = "Participants by race")
+```
+## Participants by Marital Status
+
+```{r}
+ggplot(df, aes(x = marital)) +
+geom_bar(fill = "cornflowerblue",
+color="black") +
+labs(x = "Marital status",
+y = "Frequency",
+title = "Participants by Marital Status")
+```
+
+## Frequency table
+
+```{r}
+# Frequency table for race
+race_table <- df %>%
+  count(race) %>%
+  mutate(percent = n / sum(n) * 100)
+
+# Frequency table for marital
+marital_table <- df %>%
+  count(marital) %>%
+  mutate(percent = n / sum(n) * 100)
+
+# Frequency table for sex
+sex_table <- df %>%
+  count(sex) %>%
+  mutate(percent = n / sum(n) * 100)
+
+# Print frequency tables
+print("Frequency table for race:")
+print(race_table)
+
+print("Frequency table for marital:")
+print(marital_table)
+
+print("Frequency table for sex:")
+print(sex_table)
+```
+
+## Participants by age
+
+```{r}
+ggplot(df, aes(x = age)) +
+geom_histogram(fill = "cornflowerblue",
+color = "white") +
+labs(title="Participants by age",
+x = "Age")
+```
+## Summary stats
+
+```{r}
+df2<- df %>% select(age, income, rincome, degree)
+library(psych)
+describe(df2)
+```
+
+
+# Bivariate
+
+## Mean Party Affiliation by Gender
+
+```{r}
+# Convert partyid to numeric
+df$partyid <- as.numeric(df$partyid)
+
+# Group by sex and calculate the mean party affiliation
+partyid_mean <- df %>%
+  group_by(sex) %>%
+  summarise(mean_partyid = mean(partyid))
+
+# Create the bar chart
+ggplot(partyid_mean, aes(x = sex, y = mean_partyid, fill = sex)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(x = "Gender", y = "Mean Party Affiliation") +
+  ggtitle("Mean Party Affiliation by Gender") +
+  scale_fill_manual(values = c("male" = "blue", "female" = "pink")) +
+  theme_minimal()
+```
+
+```{r}
+
+# Group by race and calculate the mean party affiliation
+partyid_mean <- df %>%
+  group_by(race) %>%
+  summarise(mean_partyid = mean(partyid))
+
+# Create the bar chart
+ggplot(partyid_mean, aes(x = race, y = mean_partyid, fill = race)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(x = "Race", y = "Mean Party Affiliation") +
+  ggtitle("Mean Party Affiliation by Race") +
+  scale_fill_manual(values = c("black" = "blue", "other" = "pink", "white"="grey")) +
+  theme_minimal()
+```
+
+
+# Multivariate 
+
+## Regression
+
+```{r}
+model<-lm(partyid~., data = df)
+summary(model)
+```
+
